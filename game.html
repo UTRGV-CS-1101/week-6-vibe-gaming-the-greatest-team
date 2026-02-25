@@ -57,7 +57,7 @@
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div class="controls">
             <h3>Controls</h3>
-            <p>Use <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> keys to move the weasel</p>
+            <p>Use the <span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span> arrow keys to move the weasel</p>
         </div>
     </div>
 
@@ -82,13 +82,22 @@
                     imageLoaded: false
                 };
                 
-                // Input handling
+                // Input handling (arrow keys)
                 this.keys = {
-                    w: false,
-                    a: false,
-                    s: false,
-                    d: false
+                    up: false,
+                    down: false,
+                    left: false,
+                    right: false
                 };
+                
+                // Lives and shield state
+                this.lives = 3;
+                this.shield = { active: false, duration: 5000, timer: 0 };
+
+                // Powerups (speed pellets and shields)
+                this.powerups = [];
+                this.powerupSpawnDelay = 10000; // 10 seconds between powerups
+                this.lastPowerupSpawn = 0;
                 
                 // Game state
                 this.gameState = 'playing'; // 'playing' or 'gameOver'
@@ -125,36 +134,36 @@
             
             setupInputHandlers() {
                 document.addEventListener('keydown', (e) => {
-                    switch(e.key.toLowerCase()) {
-                        case 'w':
-                            this.keys.w = true;
+                    switch(e.key) {
+                        case 'ArrowUp':
+                            this.keys.up = true;
                             break;
-                        case 'a':
-                            this.keys.a = true;
+                        case 'ArrowLeft':
+                            this.keys.left = true;
                             break;
-                        case 's':
-                            this.keys.s = true;
+                        case 'ArrowDown':
+                            this.keys.down = true;
                             break;
-                        case 'd':
-                            this.keys.d = true;
+                        case 'ArrowRight':
+                            this.keys.right = true;
                             break;
                     }
                     e.preventDefault();
                 });
                 
                 document.addEventListener('keyup', (e) => {
-                    switch(e.key.toLowerCase()) {
-                        case 'w':
-                            this.keys.w = false;
+                    switch(e.key) {
+                        case 'ArrowUp':
+                            this.keys.up = false;
                             break;
-                        case 'a':
-                            this.keys.a = false;
+                        case 'ArrowLeft':
+                            this.keys.left = false;
                             break;
-                        case 's':
-                            this.keys.s = false;
+                        case 'ArrowDown':
+                            this.keys.down = false;
                             break;
-                        case 'd':
-                            this.keys.d = false;
+                        case 'ArrowRight':
+                            this.keys.right = false;
                             break;
                     }
                     e.preventDefault();
@@ -170,18 +179,24 @@
                     this.spawnRing();
                     this.ringsSpawned++;
                 }
-                
-                // Handle movement
-                if (this.keys.w) {
+
+                // Spawn a powerup periodically
+                if (currentTime - this.lastPowerupSpawn > this.powerupSpawnDelay) {
+                    this.spawnPowerup();
+                    this.lastPowerupSpawn = currentTime;
+                }
+
+                // Handle movement (arrow keys)
+                if (this.keys.up) {
                     this.player.y -= this.player.speed;
                 }
-                if (this.keys.s) {
+                if (this.keys.down) {
                     this.player.y += this.player.speed;
                 }
-                if (this.keys.a) {
+                if (this.keys.left) {
                     this.player.x -= this.player.speed;
                 }
-                if (this.keys.d) {
+                if (this.keys.right) {
                     this.player.x += this.player.speed;
                 }
                 
@@ -191,8 +206,14 @@
                 
                 // Update rings
                 this.updateRings();
-                
-                // Check collisions
+
+                // Update powerups (check expiration etc.)
+                this.updatePowerups();
+
+                // Check collisions with powerups first (collect any)
+                this.checkPowerupCollisions();
+
+                // Check collisions with rings (lives/shield logic)
                 this.checkCollisions();
             }
             
@@ -206,6 +227,9 @@
                 
                 // Draw rings
                 this.drawRings();
+
+                // Draw powerups
+                this.drawPowerups();
                 
                 // Draw player
                 this.drawPlayer();
@@ -262,6 +286,70 @@
                     }
                 }
             }
+
+            // ----- powerup helpers -----
+            spawnPowerup() {
+                const type = Math.random() < 0.5 ? 'speed' : 'shield';
+                const powerup = {
+                    x: Math.random() * (this.gameWidth - 40) + 20,
+                    y: Math.random() * (this.gameHeight - 40) + 20,
+                    size: 20,
+                    type,
+                    created: Date.now()
+                };
+                this.powerups.push(powerup);
+            }
+
+            updatePowerups() {
+                // remove expired shield if any
+                if (this.shield.active && Date.now() - this.shield.timer > this.shield.duration) {
+                    this.shield.active = false;
+                }
+                // remove powerups that have sat too long
+                const now = Date.now();
+                this.powerups = this.powerups.filter(p => now - p.created < 15000);
+            }
+
+            drawPowerups() {
+                for (let p of this.powerups) {
+                    if (p.type === 'speed') {
+                        this.ctx.fillStyle = '#2ecc71'; // green
+                    } else if (p.type === 'shield') {
+                        this.ctx.fillStyle = '#3498db'; // blue
+                    }
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                }
+            }
+
+            checkPowerupCollisions() {
+                const playerCenterX = this.player.x + this.player.width / 2;
+                const playerCenterY = this.player.y + this.player.height / 2;
+                const playerRadius = Math.min(this.player.width, this.player.height) / 2;
+
+                for (let i = 0; i < this.powerups.length; i++) {
+                    let p = this.powerups[i];
+                    const dist = Math.sqrt(
+                        Math.pow(playerCenterX - p.x, 2) +
+                        Math.pow(playerCenterY - p.y, 2)
+                    );
+                    if (dist < playerRadius + p.size / 2) {
+                        // collect powerup
+                        if (p.type === 'speed') {
+                            this.player.speed += 1;
+                        } else if (p.type === 'shield') {
+                            this.shield.active = true;
+                            this.shield.timer = Date.now();
+                        }
+                        this.powerups.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
             
             checkRingCollision(ring1, ring2) {
                 const dx = ring2.x - ring1.x;
@@ -308,17 +396,31 @@
                 const playerCenterX = this.player.x + this.player.width / 2;
                 const playerCenterY = this.player.y + this.player.height / 2;
                 const playerRadius = Math.min(this.player.width, this.player.height) / 2;
-                
-                for (let ring of this.rings) {
+
+                for (let i = 0; i < this.rings.length; i++) {
+                    let ring = this.rings[i];
                     const distance = Math.sqrt(
                         Math.pow(playerCenterX - ring.x, 2) + 
                         Math.pow(playerCenterY - ring.y, 2)
                     );
-                    
+
                     if (distance < playerRadius + ring.radius) {
-                        this.gameState = 'gameOver';
-                        this.gameEndTime = Date.now();
-                        return;
+                        // shield protects once
+                        if (this.shield.active) {
+                            this.shield.active = false;
+                            this.rings.splice(i, 1);
+                            i--;
+                            continue;
+                        }
+                        // lose a life and remove ring
+                        this.lives--;
+                        this.rings.splice(i, 1);
+                        i--;
+                        if (this.lives <= 0) {
+                            this.gameState = 'gameOver';
+                            this.gameEndTime = Date.now();
+                            return;
+                        }
                     }
                 }
             }
@@ -395,7 +497,13 @@
                 this.ctx.textAlign = 'left';
                 this.ctx.fillText(`Position: ${Math.round(this.player.x)}, ${Math.round(this.player.y)}`, 20, 30);
                 this.ctx.fillText(`Speed: ${this.player.speed}`, 20, 50);
-                this.ctx.fillText(`Rings: ${this.rings.length}/3`, 20, 70);
+                this.ctx.fillText(`Lives: ${this.lives}`, 20, 70);
+                this.ctx.fillText(`Rings: ${this.rings.length}/3`, 20, 90);
+                
+                // Show shield status
+                this.ctx.fillStyle = this.shield.active ? '#2ecc71' : '#ff0000';
+                this.ctx.fillText(`Shield: ${this.shield.active ? 'ON' : 'OFF'}`, 20, 110);
+                this.ctx.fillStyle = '#fff';
                 
                 // Draw survival time
                 const currentTime = this.gameState === 'gameOver' ? this.gameEndTime : Date.now();
