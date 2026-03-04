@@ -103,27 +103,7 @@
                     imageLoaded: false
                 };
                 
-<<<<<<< HEAD
                 // Input handling (arrow keys)
-=======
-                // Player health
-                this.health = 1;
-                this.maxHealth = 5;
-                
-                // Player score
-                this.score = 0;
-                
-                // Shield system
-                this.shield = {
-                    x: this.gameWidth / 2,
-                    y: this.gameHeight / 2,
-                    radius: 40,
-                    mouseX: this.gameWidth / 2,
-                    mouseY: this.gameHeight / 2
-                };
-                
-                // Input handling
->>>>>>> 10c1f62f266acd69afef7975c3c966fdbbdeae88
                 this.keys = {
                     up: false,
                     down: false,
@@ -272,7 +252,6 @@
                     this.spawnRing();
                     this.ringsSpawned++;
                 }
-<<<<<<< HEAD
 
                 // Spawn a powerup periodically
                 if (currentTime - this.lastPowerupSpawn > this.powerupSpawnDelay) {
@@ -282,21 +261,6 @@
 
                 // Handle movement (arrow keys)
                 if (this.keys.up) {
-=======
-                
-                // Spawn health drops randomly
-                if (Math.random() < this.healthDropSpawnChance / 60) {
-                    this.spawnHealthDrop();
-                }
-                
-                // Spawn gold coins randomly
-                if (Math.random() < this.goldCoinSpawnChance / 60) {
-                    this.spawnGoldCoin();
-                }
-                
-                // Handle movement
-                if (this.keys.w) {
->>>>>>> 10c1f62f266acd69afef7975c3c966fdbbdeae88
                     this.player.y -= this.player.speed;
                 }
                 if (this.keys.down) {
@@ -550,7 +514,6 @@
                         Math.pow(playerCenterX - ring.x, 2) + 
                         Math.pow(playerCenterY - ring.y, 2)
                     );
-<<<<<<< HEAD
 
                     if (distance < playerRadius + ring.radius) {
                         // shield protects once
@@ -569,39 +532,6 @@
                             this.gameEndTime = Date.now();
                             return;
                         }
-=======
-                    
-                    // Check shield collision first
-                    const distanceToShield = Math.sqrt(
-                        Math.pow(ring.x - this.shield.x, 2) + 
-                        Math.pow(ring.y - this.shield.y, 2)
-                    );
-                    
-                    if (distanceToShield < this.shield.radius + ring.radius) {
-                        // Bounce ring off shield
-                        const angle = Math.atan2(ring.y - this.shield.y, ring.x - this.shield.x);
-                        const speed = Math.sqrt(ring.dx * ring.dx + ring.dy * ring.dy);
-                        ring.dx = Math.cos(angle) * speed;
-                        ring.dy = Math.sin(angle) * speed;
-                        
-                        // Push ring away from shield
-                        const overlap = this.shield.radius + ring.radius - distanceToShield;
-                        ring.x += Math.cos(angle) * overlap;
-                        ring.y += Math.sin(angle) * overlap;
-                    } else if (distance < playerRadius + ring.radius) {
-                        // Hit by ring - lose health
-                        this.health--;
-                        if (this.health <= 0) {
-                            this.gameState = 'gameOver';
-                            this.gameEndTime = Date.now();
-                        }
-                        // Remove the ring after collision
-                        const index = this.rings.indexOf(ring);
-                        if (index > -1) {
-                            this.rings.splice(index, 1);
-                        }
-                        return;
->>>>>>> 10c1f62f266acd69afef7975c3c966fdbbdeae88
                     }
                 }
             }
@@ -761,14 +691,13 @@
             }
             
             drawUI() {
-                // Draw health
+                // Draw health point
                 this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
                 this.ctx.fillRect(10, 10, 200, 60);
                 
                 this.ctx.fillStyle = '#fff';
                 this.ctx.font = '14px Arial';
                 this.ctx.textAlign = 'left';
-<<<<<<< HEAD
                 this.ctx.fillText(`Position: ${Math.round(this.player.x)}, ${Math.round(this.player.y)}`, 20, 30);
                 this.ctx.fillText(`Speed: ${this.player.speed}`, 20, 50);
                 this.ctx.fillText(`Lives: ${this.lives}`, 20, 70);
@@ -778,10 +707,6 @@
                 this.ctx.fillStyle = this.shield.active ? '#2ecc71' : '#ff0000';
                 this.ctx.fillText(`Shield: ${this.shield.active ? 'ON' : 'OFF'}`, 20, 110);
                 this.ctx.fillStyle = '#fff';
-=======
-                this.ctx.fillText(`Health: ${this.health}/${this.maxHealth}`, 20, 30);
-                this.ctx.fillText(`Score: ${this.score}`, 20, 50);
->>>>>>> 10c1f62f266acd69afef7975c3c966fdbbdeae88
                 
                 // Draw survival time and difficulty
                 const currentTime = this.gameState === 'gameOver' ? this.gameEndTime : Date.now();
